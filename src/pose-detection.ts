@@ -1,8 +1,10 @@
 import * as tf from '@tensorflow/tfjs';
 import * as posedetection from '@tensorflow-models/pose-detection';
-import JSConfetti from 'js-confetti'
+import JSConfetti from 'js-confetti';
+import {AudioController} from "./AudioController.ts";
 
-const jsConfetti = new JSConfetti()
+const jsConfetti = new JSConfetti();
+const audioController = new AudioController();
 
 let detector: posedetection.PoseDetector;
 let pushUpCount = 0;
@@ -97,6 +99,7 @@ export const detectPose = async (video: HTMLVideoElement) => {
         if (wasDown && !isDown) {
             pushUpCount++;
             countElement.innerText = `${pushUpCount}`;
+            audioController.playSuccessSound();
 
             if (pushUpCount % 10 === 0) {
                 jsConfetti.addConfetti({
