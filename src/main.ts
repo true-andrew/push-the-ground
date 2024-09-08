@@ -192,7 +192,7 @@ const main = async () => {
 
     // Integrate with Telegram bot
     const shareButton = document.createElement('button');
-    shareButton.textContent = 'Start Recording';
+    shareButton.textContent = 'Share result';
     shareButton.style.position = 'absolute';
     shareButton.style.top = '10px';
     shareButton.style.right = '10px';
