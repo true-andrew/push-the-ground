@@ -9,17 +9,14 @@
 </head>
 <body>
 <div class="app">
-    <header class="header">
-        <h4>💪Push-Up Counter: <span id="count">0</span> 💪</h4>
-    </header>
-    <div id="video-container">
-        <video id="video" width="640" height="480" autoplay playsinline></video>
-        <canvas id="output" width="640" height="480"></canvas>
-    </div>
-    <footer class="footer">
-        <button id="reset">Reset</button>
-    </footer>
+    <canvas id="myCanvas"></canvas>
+<!--    <video id="video" autoplay></video>-->
+    <div id="overlayText" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:24px; text-align:center; color:black; font-weight:bold;">Loading...</div>
+
+    <!-- Add your buttons -->
+    <button id="sendButton" style="display:none;">Send Recording</button>
+    <button id="resetButton" style="display:none;">Reset</button>
 </div>
-<script type="module" src="/src/main.ts"></script>
+<script type="module" src="/src/app.ts"></script>
 </body>
 </html>

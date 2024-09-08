@@ -1,119 +1,154 @@
 import * as tf from '@tensorflow/tfjs';
 import * as posedetection from '@tensorflow-models/pose-detection';
-import JSConfetti from 'js-confetti';
-import {AudioController} from "./AudioController.ts";
 
-const jsConfetti = new JSConfetti();
-const audioController = new AudioController();
+//todo надо сделать динамический расчет upPosition и downPosition исходя из вычисленной позы человека
 
-let detector: posedetection.PoseDetector;
-let pushUpCount = 0;
-let isDown = false;
-let wasDown = false;
-const countElement = document.getElementById("count");
-const resetButton = document.getElementById("reset");
+export class PoseDetector {
+    detector: posedetection.PoseDetector | undefined;
 
-resetButton?.addEventListener("click", () => {
+    constructor() {
+    }
+
+    async initDetector() {
+        await tf.ready(); // Ensure TensorFlow.js is ready
+        await tf.setBackend('webgl'); // Set the backend to webgl for better performance
+        this.detector = await posedetection.createDetector(posedetection.SupportedModels.MoveNet);
+        console.log("Detector loaded");
+    }
+}
+
+interface DefinedPoint extends posedetection.Keypoint {
+    name: string;
+    score: number;
+}
+
+interface PushUpPoints {
+    leftElbow: DefinedPoint;
+    rightElbow: DefinedPoint;
+    leftShoulder: DefinedPoint;
+    rightShoulder: DefinedPoint;
+}
+
+function isAllPointsDetected(points: Partial<PushUpPoints>): points is PushUpPoints {
+    return Object.values(points).every(point => point !== undefined);
+}
+
+function isDefinedPoint(keypoint: posedetection.Keypoint): keypoint is DefinedPoint {
+    return keypoint.name !== undefined && keypoint.score !== undefined;
+}
+
+export class PushUpDetector extends PoseDetector {
     pushUpCount = 0;
-    countElement.innerText = "0";
-});
+    isDown = false;
+    wasDown = false;
 
-export const loadDetector = async () => {
-    await tf.ready(); // Ensure TensorFlow.js is ready
-    await tf.setBackend('webgl'); // Set the backend to webgl for better performance
-    detector = await posedetection.createDetector(posedetection.SupportedModels.MoveNet);
-    console.log("Detector loaded");
-};
-
-const isDownPosition = (pose: posedetection.Pose): boolean => {
-    const minScore = 0.5; // Minimum confidence score for keypoints
-
-    // Extract keypoints
-    const leftElbow = pose.keypoints.find(k => k.name === 'left_elbow');
-    const rightElbow = pose.keypoints.find(k => k.name === 'right_elbow');
-    const leftShoulder = pose.keypoints.find(k => k.name === 'left_shoulder');
-    const rightShoulder = pose.keypoints.find(k => k.name === 'right_shoulder');
-
-    // Ensure all keypoints are detected with sufficient confidence
-    if (
-        leftElbow && rightElbow && leftShoulder && rightShoulder &&
-        leftElbow.score > minScore && rightElbow.score > minScore &&
-        leftShoulder.score > minScore && rightShoulder.score > minScore
-    ) {
-        // Check if elbows are near the shoulders and aligned horizontally
-        const leftElbowShoulderDiff = Math.abs(leftElbow.y - leftShoulder.y);
-        const rightElbowShoulderDiff = Math.abs(rightElbow.y - rightShoulder.y);
-
-
-        // Check if the elbows and shoulders are horizontally aligned
-        return leftElbowShoulderDiff < 30 && rightElbowShoulderDiff < 30;
+    async init() {
+        await this.initDetector();
     }
 
-    return false;
-};
+    async detectPose(video: HTMLVideoElement) {
+        if (!this.detector) {
+            throw new Error("Detector not initialized");
+        }
 
-const isUpPosition = (pose: posedetection.Pose): boolean => {
-    const minScore = 0.5; // Minimum confidence score for keypoints
+        const poses = await this.detector.estimatePoses(video);
 
-    // Extract keypoints
-    const leftElbow = pose.keypoints.find(k => k.name === 'left_elbow');
-    const rightElbow = pose.keypoints.find(k => k.name === 'right_elbow');
-    const leftShoulder = pose.keypoints.find(k => k.name === 'left_shoulder');
-    const rightShoulder = pose.keypoints.find(k => k.name === 'right_shoulder');
+        if (poses.length > 0) {
+            const pose = poses[0];
 
-    // Ensure all keypoints are detected with sufficient confidence
-    if (
-        leftElbow && rightElbow && leftShoulder && rightShoulder &&
-        leftElbow.score > minScore && rightElbow.score > minScore &&
-        leftShoulder.score > minScore && rightShoulder.score > minScore
-    ) {
-        // Check if elbows are farther from the shoulders vertically
-        const leftElbowShoulderDiff = Math.abs(leftElbow.y - leftShoulder.y);
-        const rightElbowShoulderDiff = Math.abs(rightElbow.y - rightShoulder.y);
+            const points: Partial<PushUpPoints> = {};
 
-        // Check if the elbows are farther from the shoulders vertically
-        return leftElbowShoulderDiff > 100 && rightElbowShoulderDiff > 100;
-    }
-
-    return false;
-};
-
-export const detectPose = async (video: HTMLVideoElement) => {
-    const poses = await detector.estimatePoses(video);
-    if (poses.length > 0) {
-        const pose = poses[0];
-
-        if (isDownPosition(pose)) {
-            if (!isDown) {
-                isDown = true;
-                console.log("Push-up down position detected");
+            for (const keypoint of pose.keypoints) {
+                if (isDefinedPoint(keypoint)) {
+                    if (keypoint.name === 'left_elbow') {
+                        points.leftElbow = keypoint;
+                    } else if (keypoint.name === 'right_elbow') {
+                        points.rightElbow = keypoint;
+                    } else if (keypoint.name === 'left_shoulder') {
+                        points.leftShoulder = keypoint;
+                    } else if (keypoint.name === 'right_shoulder') {
+                        points.rightShoulder = keypoint;
+                    }
+                }
             }
-        } else if (isUpPosition(pose)) {
-            if (isDown) {
-                isDown = false;
-                console.log("Push-up up position detected");
+
+            // Ensure all keypoints are detected
+            if (!isAllPointsDetected(points)) {
+                return undefined;
+            }
+
+            if (this.isDownPosition(points)) {
+                if (!this.isDown) {
+                    this.isDown = true;
+                    console.log("Push-up down position detected");
+                }
+            } else if (this.isUpPosition(points)) {
+                if (this.isDown) {
+                    this.isDown = false;
+                    console.log("Push-up up position detected");
+                }
             }
         }
 
-        // Increment the counter only when transitioning from down to up
-        if (wasDown && !isDown) {
-            pushUpCount++;
-            countElement.innerText = `${pushUpCount}`;
-            audioController.playSuccessSound();
-
-            if (pushUpCount % 10 === 0) {
-                jsConfetti.addConfetti({
-                    emojis: ['💪', '🆒', '😎', '🔥', '❤️‍🔥'],
-                    emojiSize: 100,
-                });
-            }
-            console.log(`Push-ups: ${pushUpCount}`);
+        if (this.wasDown && !this.isDown) {
+            this.pushUpCount++;
         }
 
-        wasDown = isDown;
-    } else {
-        console.log("No poses detected");
+        this.wasDown = this.isDown;
     }
 
-    requestAnimationFrame(() => detectPose(video));
-};
+    isDownPosition(points: PushUpPoints): boolean {
+        const {leftElbow, rightElbow, leftShoulder, rightShoulder} = points;
+        const minScore = 0.5;
+
+        // Ensure all keypoints are detected with sufficient confidence
+        if (
+            leftElbow.score > minScore &&
+            rightElbow.score > minScore &&
+            leftShoulder.score > minScore &&
+            rightShoulder.score > minScore
+        ) {
+            // Check if elbows are near the shoulders and aligned horizontally
+            const leftElbowShoulderDiff = Math.abs(leftElbow.y - leftShoulder.y);
+            const rightElbowShoulderDiff = Math.abs(rightElbow.y - rightShoulder.y);
+
+            // Check if the elbows are below the shoulders
+            const leftElbowBelowShoulder = leftElbow.y > leftShoulder.y;
+            const rightElbowBelowShoulder = rightElbow.y > rightShoulder.y;
+
+            // Check if the elbows and shoulders are horizontally aligned and elbows are below shoulders
+            return (
+                leftElbowShoulderDiff < 30 &&
+                rightElbowShoulderDiff < 30 &&
+                leftElbowBelowShoulder &&
+                rightElbowBelowShoulder
+            );
+        }
+
+        return false;
+    }
+
+    isUpPosition(points: PushUpPoints): boolean {
+        const {leftElbow, rightElbow, leftShoulder, rightShoulder} = points;
+        const minScore = 0.5; // Minimum confidence score for keypoints
+
+        // Ensure all keypoints are detected with sufficient confidence
+        if (
+            leftElbow.score > minScore && rightElbow.score > minScore &&
+            leftShoulder.score > minScore && rightShoulder.score > minScore
+        ) {
+            // Check if elbows are farther from the shoulders vertically
+            const leftElbowShoulderDiff = Math.abs(leftElbow.y - leftShoulder.y);
+            const rightElbowShoulderDiff = Math.abs(rightElbow.y - rightShoulder.y);
+
+            // Check if the elbows are farther from the shoulders vertically
+            return leftElbowShoulderDiff > 100 && rightElbowShoulderDiff > 100;
+        }
+
+        return false;
+    }
+
+    resetCounter() {
+        this.pushUpCount = 0;
+    }
+}
