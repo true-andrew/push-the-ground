@@ -170,7 +170,12 @@ const main = async () => {
     };
 
     // Create a button to start and stop recording
-    const recordButton = document.getElementById('recordButton');
+    const recordButton = document.createElement('button');
+    recordButton.textContent = 'Start Recording';
+    recordButton.style.position = 'absolute';
+    recordButton.style.top = '10px';
+    recordButton.style.left = '10px';
+    document.body.appendChild(recordButton);
     let recording = false;
 
     recordButton.addEventListener('click', () => {
@@ -184,8 +189,14 @@ const main = async () => {
         recording = !recording;
     });
 
+
     // Integrate with Telegram bot
-    const shareButton = document.getElementById('shareButton');
+    const shareButton = document.createElement('button');
+    shareButton.textContent = 'Start Recording';
+    shareButton.style.position = 'absolute';
+    shareButton.style.top = '10px';
+    shareButton.style.right = '10px';
+    document.body.appendChild(shareButton);
 
     shareButton.addEventListener('click', async () => {
         if (recording) {
