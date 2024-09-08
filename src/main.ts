@@ -108,9 +108,10 @@ const main = async () => {
     // Start pose detection
     const pushUpDetector = new PushUpDetector();
     await pushUpDetector.init();
+    pushUpDetector.detectPose(video);
 
     // Update the push-up counter and position at the bottom of the video
-    window.inc = pushUpDetector.onPushUpDetected = (count: number) => {
+    pushUpDetector.onPushUpDetected = (count: number) => {
         if (textMesh) {
             scene.remove(textMesh);
             const textGeometry = new TextGeometry(count.toString(), {
@@ -148,7 +149,7 @@ const main = async () => {
     // Set up MediaRecorder to capture canvas stream
     const canvasStream = renderer.domElement.captureStream();
     const mediaRecorder = new MediaRecorder(canvasStream);
-    const recordedChunks: BlobPart[] = [];
+    const recordedChunks = [];
 
     mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -162,20 +163,14 @@ const main = async () => {
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = 'pushups.mp4';
+        a.download = 'pushups.webm';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
     };
 
     // Create a button to start and stop recording
-    const recordButton = document.createElement('button');
-    recordButton.textContent = 'Start Recording';
-    recordButton.style.position = 'absolute';
-    recordButton.style.top = '10px';
-    recordButton.style.left = '10px';
-    document.body.appendChild(recordButton);
-
+    const recordButton = document.getElementById('recordButton');
     let recording = false;
 
     recordButton.addEventListener('click', () => {
@@ -189,6 +184,31 @@ const main = async () => {
         recording = !recording;
     });
 
+    // Integrate with Telegram bot
+    const shareButton = document.getElementById('shareButton');
+
+    shareButton.addEventListener('click', async () => {
+        if (recording) {
+            mediaRecorder.stop();
+            recordButton.textContent = 'Start Recording';
+            recording = false;
+        }
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const formData = new FormData();
+        formData.append('video', blob, 'pushups.webm');
+        formData.append('chatId', Telegram.WebApp.initDataUnsafe.user.id);
+
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (response.ok) {
+            alert('Video note sent!');
+        } else {
+            alert('Failed to send video note.');
+        }
+    });
 };
 
 main();
