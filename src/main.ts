@@ -6,6 +6,8 @@ import { setupCamera } from './camera';
 import { PushUpDetector } from './pose-detection';
 import gsap from 'gsap';
 
+Telegram.WebApp.ready();
+
 const main = async () => {
     // Set up Three.js scene
     const scene = new THREE.Scene();
@@ -199,27 +201,15 @@ const main = async () => {
     document.body.appendChild(shareButton);
 
     shareButton.addEventListener('click', async () => {
-        if (recording) {
-            mediaRecorder.stop();
-            recordButton.textContent = 'Start Recording';
-            recording = false;
-        }
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const formData = new FormData();
-        formData.append('video', blob, 'pushups.webm');
-        formData.append('chatId', Telegram.WebApp.initDataUnsafe.user.id);
+        const chatId = Telegram.WebApp.initDataUnsafe.user.id;
 
-        const response = await fetch('/upload', {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (response.ok) {
-            alert('Video note sent!');
-        } else {
-            alert('Failed to send video note.');
-        }
+        // Send metadata to the bot
+        Telegram.WebApp.sendData(JSON.stringify({
+            chatId: chatId,
+            pushUpCount: pushUpDetector.pushUpCount
+        }));
     });
+
 };
 
 main();
