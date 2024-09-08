@@ -1,13 +1,10 @@
 import * as tf from '@tensorflow/tfjs';
 import * as posedetection from '@tensorflow-models/pose-detection';
 
-//todo надо сделать динамический расчет upPosition и downPosition исходя из вычисленной позы человека
-
 export class PoseDetector {
     detector: posedetection.PoseDetector | undefined;
 
-    constructor() {
-    }
+    constructor() {}
 
     async initDetector() {
         await tf.ready(); // Ensure TensorFlow.js is ready
@@ -98,7 +95,7 @@ export class PushUpDetector extends PoseDetector {
     }
 
     isDownPosition(points: PushUpPoints): boolean {
-        const {leftElbow, rightElbow, leftShoulder, rightShoulder} = points;
+        const { leftElbow, rightElbow, leftShoulder, rightShoulder } = points;
         const minScore = 0.5;
 
         // Ensure all keypoints are detected with sufficient confidence
@@ -108,13 +105,19 @@ export class PushUpDetector extends PoseDetector {
             leftShoulder.score > minScore &&
             rightShoulder.score > minScore
         ) {
+            // Calculate the average shoulder height
+            const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
+
+            // Calculate dynamic thresholds based on shoulder height
+            const downThreshold = avgShoulderY + 0.1 * avgShoulderY; // 10% below shoulder height
+
             // Check if elbows are near the shoulders and aligned horizontally
             const leftElbowShoulderDiff = Math.abs(leftElbow.y - leftShoulder.y);
             const rightElbowShoulderDiff = Math.abs(rightElbow.y - rightShoulder.y);
 
             // Check if the elbows are below the shoulders
-            const leftElbowBelowShoulder = leftElbow.y > leftShoulder.y;
-            const rightElbowBelowShoulder = rightElbow.y > rightShoulder.y;
+            const leftElbowBelowShoulder = leftElbow.y > downThreshold;
+            const rightElbowBelowShoulder = rightElbow.y > downThreshold;
 
             // Check if the elbows and shoulders are horizontally aligned and elbows are below shoulders
             return (
@@ -129,7 +132,7 @@ export class PushUpDetector extends PoseDetector {
     }
 
     isUpPosition(points: PushUpPoints): boolean {
-        const {leftElbow, rightElbow, leftShoulder, rightShoulder} = points;
+        const { leftElbow, rightElbow, leftShoulder, rightShoulder } = points;
         const minScore = 0.5; // Minimum confidence score for keypoints
 
         // Ensure all keypoints are detected with sufficient confidence
@@ -137,12 +140,27 @@ export class PushUpDetector extends PoseDetector {
             leftElbow.score > minScore && rightElbow.score > minScore &&
             leftShoulder.score > minScore && rightShoulder.score > minScore
         ) {
+            // Calculate the average shoulder height
+            const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
+
+            // Calculate dynamic thresholds based on shoulder height
+            const upThreshold = avgShoulderY - 0.1 * avgShoulderY; // 10% above shoulder height
+
             // Check if elbows are farther from the shoulders vertically
             const leftElbowShoulderDiff = Math.abs(leftElbow.y - leftShoulder.y);
             const rightElbowShoulderDiff = Math.abs(rightElbow.y - rightShoulder.y);
 
-            // Check if the elbows are farther from the shoulders vertically
-            return leftElbowShoulderDiff > 100 && rightElbowShoulderDiff > 100;
+            // Check if the elbows are above the shoulders
+            const leftElbowAboveShoulder = leftElbow.y < upThreshold;
+            const rightElbowAboveShoulder = rightElbow.y < upThreshold;
+
+            // Check if the elbows are farther from the shoulders vertically and above shoulders
+            return (
+                leftElbowShoulderDiff > 30 &&
+                rightElbowShoulderDiff > 30 &&
+                leftElbowAboveShoulder &&
+                rightElbowAboveShoulder
+            );
         }
 
         return false;
