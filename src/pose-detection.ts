@@ -14,26 +14,19 @@ export class PoseDetector {
     }
 }
 
-interface DefinedPoint extends posedetection.Keypoint {
-    name: string;
-    score: number;
-}
-
 interface PushUpPoints {
-    leftElbow: DefinedPoint;
-    rightElbow: DefinedPoint;
-    leftShoulder: DefinedPoint;
-    rightShoulder: DefinedPoint;
-    leftWrist: DefinedPoint;
-    rightWrist: DefinedPoint;
-    leftHip: DefinedPoint;
-    rightHip: DefinedPoint;
-    leftKnee: DefinedPoint;
-    rightKnee: DefinedPoint;
-}
-
-function isDefinedPoint(keypoint: posedetection.Keypoint): keypoint is DefinedPoint {
-    return keypoint.name !== undefined && keypoint.score !== undefined;
+    leftElbow: posedetection.Keypoint;
+    rightElbow: posedetection.Keypoint;
+    leftShoulder: posedetection.Keypoint;
+    rightShoulder: posedetection.Keypoint;
+    leftWrist: posedetection.Keypoint;
+    rightWrist: posedetection.Keypoint;
+    leftHip: posedetection.Keypoint;
+    rightHip: posedetection.Keypoint;
+    leftKnee: posedetection.Keypoint;
+    rightKnee: posedetection.Keypoint;
+    leftAnkle: posedetection.Keypoint;
+    rightAnkle: posedetection.Keypoint;
 }
 
 export class PushUpDetector extends PoseDetector {
@@ -54,7 +47,6 @@ export class PushUpDetector extends PoseDetector {
 
         if (poses.length > 0) {
             const pose = poses[0];
-
             this.checkPushUp(pose);
         }
 
@@ -67,39 +59,43 @@ export class PushUpDetector extends PoseDetector {
         const points: Partial<PushUpPoints> = {};
 
         for (const keypoint of pose.keypoints) {
-            if (keypoint.score && keypoint.score > 0.5 && isDefinedPoint(keypoint)) {
-                switch (keypoint.name) {
-                    case 'left_elbow':
-                        points.leftElbow = keypoint;
-                        break;
-                    case 'right_elbow':
-                        points.rightElbow = keypoint;
-                        break;
-                    case 'left_shoulder':
-                        points.leftShoulder = keypoint;
-                        break;
-                    case 'right_shoulder':
-                        points.rightShoulder = keypoint;
-                        break;
-                    case 'left_wrist':
-                        points.leftWrist = keypoint;
-                        break;
-                    case 'right_wrist':
-                        points.rightWrist = keypoint;
-                        break;
-                    case 'left_hip':
-                        points.leftHip = keypoint;
-                        break;
-                    case 'right_hip':
-                        points.rightHip = keypoint;
-                        break;
-                    case 'left_knee':
-                        points.leftKnee = keypoint;
-                        break;
-                    case 'right_knee':
-                        points.rightKnee = keypoint;
-                        break;
-                }
+            switch (keypoint.name) {
+                case 'left_elbow':
+                    points.leftElbow = keypoint;
+                    break;
+                case 'right_elbow':
+                    points.rightElbow = keypoint;
+                    break;
+                case 'left_shoulder':
+                    points.leftShoulder = keypoint;
+                    break;
+                case 'right_shoulder':
+                    points.rightShoulder = keypoint;
+                    break;
+                case 'left_wrist':
+                    points.leftWrist = keypoint;
+                    break;
+                case 'right_wrist':
+                    points.rightWrist = keypoint;
+                    break;
+                case 'left_hip':
+                    points.leftHip = keypoint;
+                    break;
+                case 'right_hip':
+                    points.rightHip = keypoint;
+                    break;
+                case 'left_knee':
+                    points.leftKnee = keypoint;
+                    break;
+                case 'right_knee':
+                    points.rightKnee = keypoint;
+                    break;
+                case 'left_ankle':
+                    points.leftAnkle = keypoint;
+                    break;
+                case 'right_ankle':
+                    points.rightAnkle = keypoint;
+                    break;
             }
         }
 
@@ -108,35 +104,42 @@ export class PushUpDetector extends PoseDetector {
             rightShoulder,
             leftElbow,
             rightElbow,
-            leftHip,
-            rightHip,
+            leftWrist,
+            rightWrist,
+            leftAnkle,
+            rightAnkle
         } = points;
 
-        if (leftShoulder && rightShoulder && leftElbow && rightElbow && leftHip && rightHip) {
+        if (leftShoulder && rightShoulder && leftElbow && rightElbow && leftWrist && rightWrist && leftAnkle && rightAnkle) {
             const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
             const avgElbowY = (leftElbow.y + rightElbow.y) / 2;
-            const avgHipY = (leftHip.y + rightHip.y) / 2;
+            const avgWristY = (leftWrist.y + rightWrist.y) / 2;
+            const avgAnkleY = (leftAnkle.y + rightAnkle.y) / 2;
 
-            // Calculate dynamic thresholds
-            const upperBodyHeight = avgHipY - avgShoulderY;
-            const downThreshold = avgShoulderY + upperBodyHeight * 0.4; // 40% of upper body height
-            const upThreshold = avgShoulderY + upperBodyHeight * 0.1; // 10% of upper body height
+            // Check if ankles are between wrists and shoulders
+            if (avgAnkleY < avgWristY && avgAnkleY > avgShoulderY) {
+                // Calculate dynamic thresholds
+                const upperBodyHeight = avgShoulderY - avgWristY;
+                const downThreshold = avgShoulderY - upperBodyHeight * 0.4; // 40% of upper body height
+                const upThreshold = avgShoulderY - upperBodyHeight * 0.1; // 10% of upper body height
 
-            // Determine if user is in the down
-            if (avgElbowY > downThreshold) {
-                if (!this.isDown) {
-                    this.isDown = true;
-                }
-            } else if (avgElbowY < upThreshold) {
-                if (this.isDown) {
-                    this.isDown = false;
-                    this.pushUpCount++;
-                    console.log(`Push-up count: ${this.pushUpCount}`);
+                // Determine if user is in the down position
+                if (avgElbowY > downThreshold) {
+                    if (!this.isDown) {
+                        this.isDown = true;
+                    }
+                } else if (avgElbowY < upThreshold) {
+                    if (this.isDown) {
+                        this.isDown = false;
+                        this.pushUpCount++;
+                        console.log(`Push-up count: ${this.pushUpCount}`);
+                        if (this.onPushUpDetected) {
+                            this.onPushUpDetected(this.pushUpCount);
+                        }
+                    }
                 }
             }
         }
-
-
     }
 
     resetCounter() {
