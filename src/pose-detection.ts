@@ -24,10 +24,17 @@ interface PushUpPoints {
     rightElbow: DefinedPoint;
     leftShoulder: DefinedPoint;
     rightShoulder: DefinedPoint;
+    leftWrist: DefinedPoint;
+    rightWrist: DefinedPoint;
+    leftHip: DefinedPoint;
+    rightHip: DefinedPoint;
+    leftKnee: DefinedPoint;
+    rightKnee: DefinedPoint;
 }
 
 function isAllPointsDetected(points: Partial<PushUpPoints>): points is PushUpPoints {
-    return Object.values(points).every(point => point !== undefined);
+    const values = Object.values(points);
+    return values.length > 0 && values.every(point => point !== undefined);
 }
 
 function isDefinedPoint(keypoint: posedetection.Keypoint): keypoint is DefinedPoint {
@@ -37,7 +44,7 @@ function isDefinedPoint(keypoint: posedetection.Keypoint): keypoint is DefinedPo
 export class PushUpDetector extends PoseDetector {
     pushUpCount = 0;
     isDown = false;
-    wasDown = false;
+    onPushUpDetected: ((count: number) => void) | undefined;
 
     async init() {
         await this.initDetector();
@@ -57,116 +64,91 @@ export class PushUpDetector extends PoseDetector {
 
             for (const keypoint of pose.keypoints) {
                 if (isDefinedPoint(keypoint)) {
-                    if (keypoint.name === 'left_elbow') {
-                        points.leftElbow = keypoint;
-                    } else if (keypoint.name === 'right_elbow') {
-                        points.rightElbow = keypoint;
-                    } else if (keypoint.name === 'left_shoulder') {
-                        points.leftShoulder = keypoint;
-                    } else if (keypoint.name === 'right_shoulder') {
-                        points.rightShoulder = keypoint;
+                    switch (keypoint.name) {
+                        case 'left_elbow':
+                            points.leftElbow = keypoint;
+                            break;
+                        case 'right_elbow':
+                            points.rightElbow = keypoint;
+                            break;
+                        case 'left_shoulder':
+                            points.leftShoulder = keypoint;
+                            break;
+                        case 'right_shoulder':
+                            points.rightShoulder = keypoint;
+                            break;
+                        case 'left_wrist':
+                            points.leftWrist = keypoint;
+                            break;
+                        case 'right_wrist':
+                            points.rightWrist = keypoint;
+                            break;
+                        case 'left_hip':
+                            points.leftHip = keypoint;
+                            break;
+                        case 'right_hip':
+                            points.rightHip = keypoint;
+                            break;
+                        case 'left_knee':
+                            points.leftKnee = keypoint;
+                            break;
+                        case 'right_knee':
+                            points.rightKnee = keypoint;
+                            break;
                     }
                 }
             }
 
             // Ensure all keypoints are detected
             if (!isAllPointsDetected(points)) {
-                return undefined;
+                return;
             }
 
-            if (this.isDownPosition(points)) {
+            const { leftShoulder, rightShoulder, leftElbow, rightElbow, leftHip, rightHip, leftKnee, rightKnee, leftWrist, rightWrist } = points;
+
+            const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
+            const avgElbowY = (leftElbow.y + rightElbow.y) / 2;
+            const avgHipY = (leftHip.y + rightHip.y) / 2;
+            const avgKneeY = (leftKnee.y + rightKnee.y) / 2;
+            const avgWristY = (leftWrist.y + rightWrist.y) / 2;
+
+            // Calculate dynamic thresholds
+            const upperBodyHeight = avgHipY - avgShoulderY;
+            const downThreshold = avgShoulderY + upperBodyHeight * 0.4; // 40% of upper body height
+            const upThreshold = avgShoulderY + upperBodyHeight * 0.1; // 10% of upper body height
+
+            // Check for hips and knees alignment
+            const hipKneeDiff = Math.abs(avgHipY - avgKneeY);
+            const hipKneeThreshold = upperBodyHeight * 0.1; // Allowable deviation for hips and knees alignment
+
+            // Check for hands position
+            const shoulderWristDiff = Math.abs(avgShoulderY - avgWristY);
+            const shoulderWristThreshold = upperBodyHeight * 0.3; // Allowable deviation for hands position
+
+            // Determine if user is in the down position
+            if (avgElbowY > downThreshold && hipKneeDiff < hipKneeThreshold && shoulderWristDiff < shoulderWristThreshold) {
                 if (!this.isDown) {
                     this.isDown = true;
-                    console.log("Push-up down position detected");
                 }
-            } else if (this.isUpPosition(points)) {
+            } else if (avgElbowY < upThreshold && hipKneeDiff < hipKneeThreshold && shoulderWristDiff < shoulderWristThreshold) {
                 if (this.isDown) {
                     this.isDown = false;
-                    console.log("Push-up up position detected");
+                    this.pushUpCount++;
+                    console.log(`Push-up count: ${this.pushUpCount}`);
+                    if (this.onPushUpDetected) {
+                        this.onPushUpDetected(this.pushUpCount);
+                    }
                 }
             }
         }
 
-        if (this.wasDown && !this.isDown) {
-            this.pushUpCount++;
-        }
-
-        this.wasDown = this.isDown;
-    }
-
-    isDownPosition(points: PushUpPoints): boolean {
-        const { leftElbow, rightElbow, leftShoulder, rightShoulder } = points;
-        const minScore = 0.5;
-
-        // Ensure all keypoints are detected with sufficient confidence
-        if (
-            leftElbow.score > minScore &&
-            rightElbow.score > minScore &&
-            leftShoulder.score > minScore &&
-            rightShoulder.score > minScore
-        ) {
-            // Calculate the average shoulder height
-            const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
-
-            // Calculate dynamic thresholds based on shoulder height
-            const downThreshold = avgShoulderY + 0.1 * avgShoulderY; // 10% below shoulder height
-
-            // Check if elbows are near the shoulders and aligned horizontally
-            const leftElbowShoulderDiff = Math.abs(leftElbow.y - leftShoulder.y);
-            const rightElbowShoulderDiff = Math.abs(rightElbow.y - rightShoulder.y);
-
-            // Check if the elbows are below the shoulders
-            const leftElbowBelowShoulder = leftElbow.y > downThreshold;
-            const rightElbowBelowShoulder = rightElbow.y > downThreshold;
-
-            // Check if the elbows and shoulders are horizontally aligned and elbows are below shoulders
-            return (
-                leftElbowShoulderDiff < 30 &&
-                rightElbowShoulderDiff < 30 &&
-                leftElbowBelowShoulder &&
-                rightElbowBelowShoulder
-            );
-        }
-
-        return false;
-    }
-
-    isUpPosition(points: PushUpPoints): boolean {
-        const { leftElbow, rightElbow, leftShoulder, rightShoulder } = points;
-        const minScore = 0.5; // Minimum confidence score for keypoints
-
-        // Ensure all keypoints are detected with sufficient confidence
-        if (
-            leftElbow.score > minScore && rightElbow.score > minScore &&
-            leftShoulder.score > minScore && rightShoulder.score > minScore
-        ) {
-            // Calculate the average shoulder height
-            const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
-
-            // Calculate dynamic thresholds based on shoulder height
-            const upThreshold = avgShoulderY - 0.1 * avgShoulderY; // 10% above shoulder height
-
-            // Check if elbows are farther from the shoulders vertically
-            const leftElbowShoulderDiff = Math.abs(leftElbow.y - leftShoulder.y);
-            const rightElbowShoulderDiff = Math.abs(rightElbow.y - rightShoulder.y);
-
-            // Check if the elbows are above the shoulders
-            const leftElbowAboveShoulder = leftElbow.y < upThreshold;
-            const rightElbowAboveShoulder = rightElbow.y < upThreshold;
-
-            // Check if the elbows are farther from the shoulders vertically and above shoulders
-            return (
-                leftElbowShoulderDiff > 30 &&
-                rightElbowShoulderDiff > 30 &&
-                leftElbowAboveShoulder &&
-                rightElbowAboveShoulder
-            );
-        }
-
-        return false;
+        setTimeout(() => {
+            this.detectPose(video);
+        }, 33);
     }
 
     resetCounter() {
         this.pushUpCount = 0;
+        this.isDown = false;
     }
 }
