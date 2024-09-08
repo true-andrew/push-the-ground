@@ -4,7 +4,8 @@ import * as posedetection from '@tensorflow-models/pose-detection';
 export class PoseDetector {
     detector: posedetection.PoseDetector | undefined;
 
-    constructor() {}
+    constructor() {
+    }
 
     async initDetector() {
         await tf.ready(); // Ensure TensorFlow.js is ready
@@ -33,6 +34,7 @@ export class PushUpDetector extends PoseDetector {
     pushUpCount = 0;
     isDown = false;
     onPushUpDetected: ((count: number) => void) | undefined;
+    onHeadPositionDetected: ((headPosition: { x: number, y: number, z: number }) => void) | undefined;
 
     async init() {
         await this.initDetector();
@@ -96,6 +98,9 @@ export class PushUpDetector extends PoseDetector {
                 case 'right_ankle':
                     points.rightAnkle = keypoint;
                     break;
+                case 'nose':
+                    points.nose = keypoint;
+                    break;
             }
         }
 
@@ -107,8 +112,11 @@ export class PushUpDetector extends PoseDetector {
             leftWrist,
             rightWrist,
             leftAnkle,
-            rightAnkle
+            rightAnkle,
+            nose
         } = points;
+
+        this.onHeadPositionDetected?.(points.nose);
 
         if (leftShoulder && rightShoulder && leftElbow && rightElbow && leftWrist && rightWrist && leftAnkle && rightAnkle) {
             const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;

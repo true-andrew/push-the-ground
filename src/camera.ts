@@ -1,6 +1,16 @@
-export const setupCamera = async (video: HTMLVideoElement): Promise<HTMLVideoElement> => {
-    video.srcObject = await navigator.mediaDevices.getUserMedia({video: true});
+import testVideo from '../assets/pushups.mp4'
 
+export const setupCamera = async (): Promise<HTMLVideoElement> => {
+    const video = document.createElement('video');
+    video.setAttribute('playsinline', 'true');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    video.play();
+
+    // video.src = testVideo;
+    // video.controls = true;
+    //
+    // document.body.appendChild(video);
     return new Promise((resolve) => {
         video.onloadedmetadata = () => {
             resolve(video);

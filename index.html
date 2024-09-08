@@ -6,17 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Vite + TS</title>
     <link rel="stylesheet" href="/assets/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-<div class="app">
-    <canvas id="myCanvas"></canvas>
-<!--    <video id="video" autoplay></video>-->
-    <div id="overlayText" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:24px; text-align:center; color:black; font-weight:bold;">Loading...</div>
+<!--<div class="app">-->
+<!--    <canvas id="app"></canvas>-->
+<!--&lt;!&ndash;    <video id="video" autoplay></video>&ndash;&gt;-->
+<!--    <div id="overlayText" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:24px; text-align:center; color:black; font-weight:bold;">Loading...</div>-->
 
-    <!-- Add your buttons -->
-    <button id="sendButton" style="display:none;">Send Recording</button>
-    <button id="resetButton" style="display:none;">Reset</button>
-</div>
-<script type="module" src="/src/app.ts"></script>
+<!--    &lt;!&ndash; Add your buttons &ndash;&gt;-->
+<!--    <button id="sendButton" style="display:none;">Send Recording</button>-->
+<!--    <button id="resetButton" style="display:none;">Reset</button>-->
+<!--</div>-->
+<div class="loader"></div>
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>
