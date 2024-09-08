@@ -201,6 +201,9 @@ const main = async () => {
     document.body.appendChild(shareButton);
 
     shareButton.addEventListener('click', async () => {
+        TelegramGameProxy.shareScore()
+
+        return;
         const chatId = Telegram.WebApp.initDataUnsafe.user.id;
 
         // Send metadata to the bot
