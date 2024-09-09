@@ -34,7 +34,6 @@ export class PushUpDetector extends PoseDetector {
     pushUpCount = 0;
     isDown = false;
     onPushUpDetected: ((count: number) => void) | undefined;
-    onHeadPositionDetected: ((headPosition: { x: number, y: number, z: number }) => void) | undefined;
 
     async init() {
         await this.initDetector();
@@ -52,15 +51,16 @@ export class PushUpDetector extends PoseDetector {
             this.checkPushUp(pose);
         }
 
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             this.detectPose(video);
-        }, 33);
+        });
     }
 
     checkPushUp(pose: posedetection.Pose) {
         const points: Partial<PushUpPoints> = {};
 
         for (const keypoint of pose.keypoints) {
+            if (keypoint.score !== undefined)
             switch (keypoint.name) {
                 case 'left_elbow':
                     points.leftElbow = keypoint;
@@ -98,9 +98,6 @@ export class PushUpDetector extends PoseDetector {
                 case 'right_ankle':
                     points.rightAnkle = keypoint;
                     break;
-                case 'nose':
-                    points.nose = keypoint;
-                    break;
             }
         }
 
@@ -113,10 +110,8 @@ export class PushUpDetector extends PoseDetector {
             rightWrist,
             leftAnkle,
             rightAnkle,
-            nose
         } = points;
 
-        this.onHeadPositionDetected?.(points.nose);
 
         if (leftShoulder && rightShoulder && leftElbow && rightElbow && leftWrist && rightWrist && leftAnkle && rightAnkle) {
             const avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
