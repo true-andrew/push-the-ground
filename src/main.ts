@@ -1,8 +1,6 @@
 import { setupCamera } from './camera';
 import { PushUpDetector } from './pose-detection';
 
-Telegram.WebApp.ready();
-
 const loaderText = document.getElementById('loader-text')!;
 const overlay = document.getElementById('overlay')!;
 const startButton = document.getElementById('startButton')!;
