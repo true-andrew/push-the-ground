@@ -8,8 +8,8 @@ export const setupCamera = async (): Promise<HTMLVideoElement> => {
 
     video.srcObject = stream;
     video.play();
-
-
+    //
+    //
     // video.src = testVideo;
     // video.controls = true;
     //

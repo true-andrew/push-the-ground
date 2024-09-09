@@ -24,6 +24,10 @@ body, html {
     font-family: Arial, sans-serif;
 }
 
+:where(h1, h2, h3, h4, h5, h6) {
+    font-size: var(--size-fluid-2);
+}
+
 .app {
     position: relative;
     width: 100%;
@@ -47,7 +51,6 @@ body, html {
     background-color: rgba(0, 0, 0, 0.8);
     padding: 20px;
     color: white;
-    font-size: 3rem;
     transition: transform 0.5s ease;
     transform: translateY(-100%);
 }
@@ -80,13 +83,11 @@ body, html {
 
 #loader-text {
     animation: var(--animation-blink);
-    font-size: 2rem;
     color: white;
 }
 
 #startButton {
     display: none;
-    font-size: 3rem;
     cursor: pointer;
 }
 
@@ -109,7 +110,6 @@ body, html {
 
 #finishButton {
     padding: 10px 20px;
-    font-size: 3rem;
     cursor: pointer;
 }
 
