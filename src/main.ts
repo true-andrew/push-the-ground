@@ -11,6 +11,10 @@ const footer = document.getElementById('footer')!;
 const counterElement = document.getElementById('counter')!;
 const finishButton = document.getElementById('finishButton')!;
 const pushUpDetector = new PushUpDetector();
+const urlParams = new URLSearchParams(window.location.search);
+const chatId = urlParams.get('chat_id');
+const userId = urlParams.get('user_id');
+const messageId = urlParams.get('message_id');
 
 let pushUpCount = 0;
 
@@ -41,13 +45,26 @@ startButton.addEventListener('click', () => {
 });
 
 finishButton.addEventListener('click', async () => {
-    // Send the number of push-ups to your API
-    Telegram.WebApp.sendData(JSON.stringify({
-        pushUpCount: pushUpCount
-    }));
 
-    // Show a dialog with the title
-    alert(`You have completed ${pushUpCount} push-ups!`);
+    await fetch('http://localhost:3000/send-pushups', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            chatId: chatId,
+            userId: userId,
+            pushUpCount: pushUpCount,
+            messageId: messageId,
+        }),
+    });
+    // Send the number of push-ups to your API
+
+    pushUpDetector.resetCounter();
+    header.classList.remove('visible');
+    footer.classList.remove('visible');
+    overlay.style.display = 'flex';
+    startButton.style.display = 'flex';
 });
 
 
