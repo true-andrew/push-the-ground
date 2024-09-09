@@ -90,7 +90,7 @@ body, html {
 #startButton {
     display: none;
     cursor: pointer;
-    font-size: var(--font-size-fluid-3);
+    font-size: 2rem;
 }
 
 #footer {
