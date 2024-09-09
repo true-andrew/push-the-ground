@@ -44,18 +44,23 @@ startButton.addEventListener('click', () => {
 
 finishButton.addEventListener('click', async () => {
 
-    await fetch('http://localhost:3000/send-pushups', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            chatId: chatId,
-            userId: userId,
-            pushUpCount: pushUpCount,
-            messageId: messageId,
-        }),
-    });
+    try {
+        await fetch('/send-pushups', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chatId: chatId,
+                userId: userId,
+                pushUpCount: pushUpCount,
+                messageId: messageId,
+            }),
+        });
+    } catch (error) {
+        console.error(error);
+        alert('Failed to send push-ups. Please try again later.');
+    }
     // Send the number of push-ups to your API
 
     pushUpDetector.resetCounter();
