@@ -42,20 +42,13 @@ startButton.addEventListener('click', () => {
 
 finishButton.addEventListener('click', async () => {
     // Send the number of push-ups to your API
-    const response = await fetch('YOUR_API_ENDPOINT', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pushUpCount })
-    });
-
-    if (response.ok) {
-        alert('Push-up count sent successfully!');
-    } else {
-        alert('Failed to send push-up count.');
-    }
+    Telegram.WebApp.sendData(JSON.stringify({
+        pushUpCount: pushUpCount
+    }));
 
     // Show a dialog with the title
     alert(`You have completed ${pushUpCount} push-ups!`);
 });
+
 
 main();
