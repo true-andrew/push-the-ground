@@ -22,6 +22,7 @@ body, html {
     align-items: center;
     justify-content: center;
     font-family: Arial, sans-serif;
+    overflow: hidden;
 }
 
 :where(h1, h2, h3, h4, h5, h6) {
@@ -89,6 +90,7 @@ body, html {
 #startButton {
     display: none;
     cursor: pointer;
+    font-size: var(--font-size-fluid-3);
 }
 
 #footer {
