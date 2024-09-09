@@ -9,16 +9,21 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-<!--<div class="app">-->
-<!--    <canvas id="app"></canvas>-->
-<!--&lt;!&ndash;    <video id="video" autoplay></video>&ndash;&gt;-->
-<!--    <div id="overlayText" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:24px; text-align:center; color:black; font-weight:bold;">Loading...</div>-->
+<div class="app">
+    <header id="header">
+        <h1>Push-Up Counter</h1>
+        <h2 id="counter">0</h2>
+    </header>
+    <video id="video" playsinline></video>
+    <div id="overlay">
+        <div id="loader-text">Wait a sec...</div>
+        <button id="startButton">Start</button>
+    </div>
+    <footer id="footer">
+        <button id="finishButton">Finish</button>
+    </footer>
 
-<!--    &lt;!&ndash; Add your buttons &ndash;&gt;-->
-<!--    <button id="sendButton" style="display:none;">Send Recording</button>-->
-<!--    <button id="resetButton" style="display:none;">Reset</button>-->
-<!--</div>-->
-<div class="loader"></div>
+</div>
 <script type="module" src="/src/main.ts"></script>
 <script src="https://telegram.org/js/games.js"></script>
 </body>
