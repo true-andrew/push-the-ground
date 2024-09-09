@@ -30,7 +30,7 @@ bot.on("callback_query:game_short_name", async (ctx) => {
     const chatId = ctx.chat.id;
     const userId = ctx.from.id;
     const messageId = ctx.callbackQuery.message.message_id;
-    const url = `https://push-the-ground.vercel.app?chat_id=${chatId}&user_id=${userId}&message_id=${messageId}`;
+    const url = `https://true-andrew-push-the-ground-b365.twc1.net?chat_id=${chatId}&user_id=${userId}&message_id=${messageId}`;
     await ctx.answerCallbackQuery({url: url});
 });
 
