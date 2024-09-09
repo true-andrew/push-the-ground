@@ -2,13 +2,15 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const {Bot, InlineKeyboard} = require('grammy');
 const path = require('path');
-require('dotenv').config()
+const compression = require('compression');
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 const token = process.env.BOT_TOKEN;
 const bot = new Bot(token);
 
+app.use(compression());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -30,7 +32,7 @@ bot.on("callback_query:game_short_name", async (ctx) => {
     const chatId = ctx.chat.id;
     const userId = ctx.from.id;
     const messageId = ctx.callbackQuery.message.message_id;
-    const url = `https://true-andrew-push-the-ground-b365.twc1.net?chat_id=${chatId}&user_id=${userId}&message_id=${messageId}`;
+    const url = `${process.env.APP_URL}?chat_id=${chatId}&user_id=${userId}&message_id=${messageId}`;
     await ctx.answerCallbackQuery({url: url});
 });
 
