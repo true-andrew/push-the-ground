@@ -1,9 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const {Bot, InlineKeyboard} = require('grammy');
 const path = require('path');
 const compression = require('compression');
-require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
